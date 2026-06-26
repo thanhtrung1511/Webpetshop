@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quản trị — Bố của Bông</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --green:#2D6A4F; --green-dark:#1B4332; --green-light:#D8EDE1; --green-xlight:#EDF5EE;
+    --text:#1A1A1A; --muted:#6B7280; --border:#E5E7EB; --bg:#F7F9F8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Be Vietnam Pro','Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  .topbar{background:var(--green-dark);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+  .topbar h1{font-size:17px;font-weight:800}
+  .topbar a{color:#cfe6d8;text-decoration:none;font-size:13px}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 16px}
+
+  /* Login gate */
+  .gate{max-width:360px;margin:80px auto;background:#fff;border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+  .gate h2{color:var(--green-dark);margin-bottom:6px}
+  .gate p{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .gate input{width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px}
+  .gate button{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer}
+  .gate button:hover{background:var(--green-dark)}
+
+  .status-banner{font-size:12px;padding:8px 14px;border-radius:8px;margin-bottom:16px;font-weight:600}
+  .online{background:var(--green-light);color:var(--green-dark)}
+  .offline{background:#FFF3D6;color:#92702A}
+
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{padding:9px 18px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px}
+  .tab.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+  .toolbar .stats{font-size:13px;color:var(--muted)}
+  .btn{padding:8px 14px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px}
+  .btn:hover{background:var(--green-xlight)}
+
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:var(--green-xlight);color:var(--green-dark);font-weight:700;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .code{font-weight:700;color:var(--green-dark)}
+  .muted{color:var(--muted);font-size:12px}
+  .money{font-weight:700;color:var(--green-dark);white-space:nowrap}
+  select.st{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+  .empty{text-align:center;padding:48px;color:var(--muted)}
+  .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div id="gate" class="gate">
+  <h2>🔒 Trang quản trị</h2>
+  <p>Bố của Bông — Quản lý đơn hàng &amp; lịch hẹn</p>
+  <input type="password" id="pw" placeholder="Nhập mật khẩu" onkeypress="if(event.key==='Enter')login()"/>
+  <button onclick="login()">Đăng nhập</button>
+  <p style="margin-top:14px;font-size:11px">Mật khẩu mặc định: <strong>bocuabong</strong> (đổi trong file admin.html)</p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <h1>🐾 Bố của Bông — Quản trị</h1>
+    <a href="index.html">← Về trang bán hàng</a>
+  </div>
+  <div class="wrap">
+    <div id="connBanner"></div>
+    <div class="tabs">
+      <div class="tab on" id="tabOrders" onclick="showTab('orders')">🛍️ Đơn hàng</div>
+      <div class="tab" id="tabBookings" onclick="showTab('bookings')">📅 Lịch hẹn</div>
+    </div>
+    <div class="toolbar">
+      <div class="stats" id="stats"></div>
+      <button class="btn" onclick="loadAll()">↻ Tải lại</button>
+    </div>
+    <div class="card"><div id="content"></div></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ⚙️  CẤU HÌNH SUPABASE — dán GIỐNG HỆT trong index.html
+   ============================================================ */
+const SUPABASE_URL = ""; // ví dụ: https://abcdxyz.supabase.co
+const SUPABASE_KEY = ""; // anon public key
+
+/* Mật khẩu trang quản trị — bố đổi chuỗi bên dưới nếu muốn */
+const ADMIN_PASSWORD = "bocuabong";
+
+const SB = (SUPABASE_URL && SUPABASE_KEY && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+let DATA = { orders:[], bookings:[] };
+let curTab = 'orders';
+
+function login(){
+  if(document.getElementById('pw').value === ADMIN_PASSWORD){
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('connBanner').innerHTML = SB
+      ? '<div class="status-banner online">● Đang kết nối Database thật (Supabase)</div>'
+      : '<div class="status-banner offline">● Chế độ tạm (localStorage) — dữ liệu chỉ trên trình duyệt này. Dán key Supabase để dùng DB thật.</div>';
+    loadAll();
+  } else {
+    alert('Sai mật khẩu!');
+  }
+}
+
+function ls(key){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){ return []; } }
+
+async function loadAll(){
+  if(SB){
+    const [o,b] = await Promise.all([
+      SB.from('orders').select('*').order('created_at',{ascending:false}),
+      SB.from('bookings').select('*').order('created_at',{ascending:false})
+    ]);
+    if(o.error) console.error(o.error);
+    if(b.error) console.error(b.error);
+    DATA.orders = o.data || [];
+    DATA.bookings = b.data || [];
+  } else {
+    DATA.orders = ls('bcb_orders');
+    DATA.bookings = ls('bcb_bookings');
+  }
+  render();
+}
+
+function showTab(t){
+  curTab=t;
+  document.getElementById('tabOrders').classList.toggle('on', t==='orders');
+  document.getElementById('tabBookings').classList.toggle('on', t==='bookings');
+  render();
+}
+
+const STATUS = {
+  pending:['#92702A','#FFF3D6','Chờ xử lý'],
+  confirmed:['#1B4332','#D8EDE1','Đã xác nhận'],
+  done:['#1B4332','#D8EDE1','Hoàn thành'],
+  cancelled:['#C0392B','#FBE3E0','Đã hủy']
+};
+function fmtDate(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  if(isNaN(d)) return iso;
+  const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function money(n){ return (n||0).toLocaleString('vi-VN')+'đ'; }
+function stSelect(row, table){
+  return `<select class="st" onchange="updateStatus('${table}', '${row.id}', this.value)">` +
+    Object.keys(STATUS).map(k=>`<option value="${k}" ${row.status===k?'selected':''}>${STATUS[k][2]}</option>`).join('') +
+    `</select>`;
+}
+
+function render(){
+  const stats=document.getElementById('stats');
+  const c=document.getElementById('content');
+  if(curTab==='orders'){
+    const list=DATA.orders;
+    const revenue=list.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+(o.total||0),0);
+    stats.innerHTML=`Tổng <strong>${list.length}</strong> đơn — Doanh thu (trừ đơn hủy): <strong style="color:var(--green-dark)">${money(revenue)}</strong>`;
+    if(!list.length){ c.innerHTML='<div class="empty">Chưa có đơn hàng nào.</div>'; return; }
+    c.innerHTML=`<table><thead><tr>
+      <th>Mã đơn</th><th>Khách hàng</th><th>Sản phẩm</th><th>Tổng tiền</th><th>Thanh toán</th><th>Thời gian</th><th>Trạng thái</th>
+      </tr></thead><tbody>`+
+      list.map(o=>`<tr>
+        <td class="code">${o.code||''}</td>
+        <td>${o.customer_name||''}<div class="muted">${o.phone||''}</div><div class="muted">${o.address||''}</div></td>
+        <td style="max-width:260px">${(o.items||[]).map(i=>`${i.name} <strong>×${i.qty}</strong>`).join('<br/>')}${o.note?`<div class="muted">📝 ${o.note}</div>`:''}</td>
+        <td class="money">${money(o.total)}</td>
+        <td>${o.payment==='bank'?'Chuyển khoản':'COD'}</td>
+        <td class="muted">${fmtDate(o.created_at)}</td>
+        <td>${stSelect(o,'orders')}</td>
+      </tr>`).join('')+`</tbody></table>`;
+  } else {
+    const list=DATA.bookings;
+    stats.innerHTML=`Tổng <strong>${list.length}</strong> lịch hẹn`;
+    if(!list.length){ c.innerHTML='<div class="empty">Chưa có lịch hẹn nào.</div>'; return; }
+    c.innerHTML=`<table><thead><tr>
+      <th>Mã</th><th>Khách hàng</th><th>Thú cưng</th><th>Dịch vụ</th><th>Ngày & giờ hẹn</th><th>Đặt lúc</th><th>Trạng thái</th>
+      </tr></thead><tbody>`+
+      list.map(b=>`<tr>
+        <td class="code">${b.code||''}</td>
+        <td>${b.customer_name||''}<div class="muted">${b.phone||''}</div></td>
+        <td>${b.pet_name||'—'}<div class="muted">${b.pet_type||''}</div></td>
+        <td>${b.service||''}${b.note?`<div class="muted">📝 ${b.note}</div>`:''}</td>
+        <td>${b.date||''} ${b.time||''}</td>
+        <td class="muted">${fmtDate(b.created_at)}</td>
+        <td>${stSelect(b,'bookings')}</td>
+      </tr>`).join('')+`</tbody></table>`;
+  }
+}
+
+async function updateStatus(table, id, status){
+  if(SB){
+    const { error } = await SB.from(table).update({status}).eq('id', id);
+    if(error){ alert('Lỗi cập nhật: '+error.message); return; }
+  } else {
+    const key = table==='orders' ? 'bcb_orders' : 'bcb_bookings';
+    const arr = ls(key).map(r=> String(r.id)===String(id) ? {...r,status} : r);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+  const arr = curTab==='orders'?DATA.orders:DATA.bookings;
+  const row = arr.find(r=>String(r.id)===String(id));
+  if(row) row.status=status;
+  render();
+}
+</script>
+</body>
+</html>
