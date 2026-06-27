@@ -1,0 +1,52 @@
+LỊCH SỬ TRÒ CHUYỆN VỚI CLAUDE - DỰ ÁN WEBSITE PETSHOP "BỐ CỦA BÔNG" - BUỔI 2
+Ngày: 26-27/06/2026
+
+================================================================================
+
+USER: https://github.com/thanhtrung1511/Webpetshop — đây là link làm việc đã lưu dữ liệu, tiếp tục làm trên file này.
+
+CLAUDE: Clone repo về máy tại "Downloads/Claude AI/Webpetshop". Repo có index.html (web 1 file, ~1.1MB) và lichsu_claude.txt. Đọc lại toàn bộ code (header, hero, trust bar, categories, products, services, booking, blog, brands, footer, cart drawer, product detail modal) để nắm hiện trạng.
+
+--------------------------------------------------------------------------------
+
+USER: Muốn hoàn thiện website có đầy đủ chức năng mua hàng, tìm kiếm sản phẩm. Khách đặt lịch/mua hàng phải lưu database.
+
+CLAUDE: Hỏi bố chọn cách lưu dữ liệu — bố chọn Supabase (database thật, miễn phí). Triển khai:
+- Thêm thư viện Supabase JS + lớp dữ liệu DB (dùng Supabase nếu đã cấu hình URL/KEY, fallback localStorage nếu chưa) — web chạy được ngay cả khi chưa cấu hình.
+- Tìm kiếm thật: doSearch() lọc sản phẩm theo từ khóa thay vì chỉ hiện toast.
+- Luồng mua hàng: thêm modal checkout (tên, SĐT, địa chỉ, phương thức thanh toán), placeOrder() lưu đơn vào DB, popup đặt hàng thành công có mã đơn.
+- Đặt lịch: gắn ID cho form, submitBooking() lưu lịch vào DB trước khi hiện popup cảm ơn.
+- Thêm nút "Đơn của tôi" trên header — tra cứu đơn hàng & lịch hẹn theo số điện thoại.
+- Tạo trang admin.html (mật khẩu "bocuabong") — xem danh sách đơn/lịch, đổi trạng thái, tính doanh thu.
+- Tạo supabase_setup.sql (script tạo bảng orders, bookings + RLS) và HUONG_DAN_SUPABASE.md (hướng dẫn tiếng Việt 6 bước kết nối Supabase).
+- Test toàn bộ bằng preview server thật (vì máy không cài Node, dùng jsc của macOS để kiểm tra cú pháp JS): đặt hàng, đặt lịch, tra cứu theo SĐT, đổi trạng thái trong admin — tất cả chạy đúng, 0 lỗi console.
+
+--------------------------------------------------------------------------------
+
+USER: Ảnh sản phẩm chưa đúng, lên mạng tải ảnh về fill vào web cho hoàn chỉnh. Ảnh chó chỉ muốn Shih Tzu, Pom, Corgi. Mèo thì Anh lông ngắn và lông dài.
+
+CLAUDE: Giải thích không cần điều khiển màn hình (vì preview ở chế độ chỉ xem, không bấm/tải được) — cách nhanh hơn là tự tải ảnh thật về máy rồi nhúng thẳng vào file.
+
+Vòng 1 — 10 ảnh theo chủ đề (hero, promo, dịch vụ, blog): thử LoremFlickr (có watermark, vài ảnh sai chủ đề) → đổi sang Unsplash (không watermark) lấy qua WebFetch trang search, xem từng ảnh trước khi chọn, nhúng base64 thay 10 SVG placeholder cuối cùng. Test trong preview server: tất cả ảnh load đúng.
+
+Vòng 2 — Theo đúng giống bố yêu cầu: tìm và xem ảnh Corgi, Pom, Shih Tzu, mèo Anh lông ngắn, mèo lông dài trên Unsplash, chọn 10 ảnh đẹp nhất đúng giống, nhúng thay 10 ảnh chó mèo cũ.
+
+Vòng 3 — Ảnh sản phẩm thật: tìm các cửa hàng online dùng Shopify (cho phép lấy link ảnh qua endpoint /products/<handle>.json), tải bao bì thật của Royal Canin, Hill's, Sheba, Nylabone, Purina Pro Plan, Acana, Douxo S3, nệm thú cưng, Whiskas, Kong — xem từng ảnh kiểm tra trước khi nhúng. Resize ảnh bằng "sips" trên máy về 640px cho nhẹ.
+
+Sau cả 3 vòng: chạy lại preview, chụp màn hình kiểm tra trang chủ + khu sản phẩm + dịch vụ — ảnh hiển thị đúng giống, đúng sản phẩm, không lỗi console. File index.html cuối cùng ~1.9MB, vẫn mở trực tiếp bằng double-click không cần internet.
+
+--------------------------------------------------------------------------------
+
+USER: Cập nhật bộ dữ liệu vừa rồi lên GitHub, các file database cũng đưa lên hết.
+
+CLAUDE: Kiểm tra cấu hình git (remote, user, credential helper, keychain) trước khi đẩy lên, chuẩn bị commit toàn bộ: index.html (đã cập nhật ảnh + chức năng), admin.html, supabase_setup.sql, HUONG_DAN_SUPABASE.md.
+
+--------------------------------------------------------------------------------
+
+USER: Export cuộc trò chuyện vừa rồi, đặt tên "buổi 2", up lên GitHub.
+
+CLAUDE: Ghi file lichsu_claude_buoi2.txt tóm tắt buổi làm việc này, sau đó commit + push toàn bộ thay đổi (web, ảnh, file database/admin/hướng dẫn, file lịch sử) lên repo GitHub.
+
+================================================================================
+HẾT LỊCH SỬ TRÒ CHUYỆN — BUỔI 2
+================================================================================
